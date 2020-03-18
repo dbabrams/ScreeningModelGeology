@@ -333,84 +333,85 @@ for idx in range( len(refined.adgdf['geometry']) ):
     ibound_ad[ refined.adgdf.loc[idx, 'Inside Indices'] ] = 1
             
 # pass the modflow object and the ibound array
-bas = flopy.modflow.ModflowBas(mf_obj, ibound=ibound_ad)
+bas = flopy.modflow.ModflowBas(mf_obj, ibound=ibound_ad, strt=elevs_array[0])
 
 
 #%% SETTING BC - HORSESHOE LAKE TEST CASE
 
-# other shapefiles to plot in Layer 1
-pathofpaths = 'A:/CGS/ESLgisData/Shapefiles/'
-# Horseshoe Lake 
-horseshoe = pathofpaths + 'Horseshoe_lake.shp'
-# Canals
-canals = pathofpaths + 'ESL_canals.shp'
-# south lakes
-souths = pathofpaths + 'ESL_southlakes.shp'
-# north lakes
-norths = pathofpaths + 'ESL_northlakes.shp'
+# # other shapefiles to plot in Layer 1
+# pathofpaths = 'A:/CGS/ESLgisData/Shapefiles/'
+# # Horseshoe Lake 
+# horseshoe = pathofpaths + 'Horseshoe_lake.shp'
+# # Canals
+# canals = pathofpaths + 'ESL_canals.shp'
+# # south lakes
+# souths = pathofpaths + 'ESL_southlakes.shp'
+# # north lakes
+# norths = pathofpaths + 'ESL_northlakes.shp'
 
-# !!! this value goes into the bc work and is currently a dummy value
-# extremely approximate estimate of stage/bottom of rivers
-h0 = 500
+# # !!! this value goes into the bc work and is currently a dummy value
+# # extremely approximate estimate of stage/bottom of rivers
+# h0 = 500
 
-# create list of data for each lake input
-# initialize an empty dictionary of lake data
-lrcd = {0:[]}
-lay  = 0 # top?
-k_lakbott = 1 #lake bottom hydraulic conductivity in ft/d
-sed_thick = 1 #thickness of riverbed sediment in ft
-numlks = 1 # number of lakes in model
+# # create list of data for each lake input
+# # initialize an empty dictionary of lake data
+# lrcd = {0:[]}
+# lay  = 0 # top?
+# k_lakbott = 1 #lake bottom hydraulic conductivity in ft/d
+# sed_thick = 1 #thickness of riverbed sediment in ft
+# numlks = 1 # number of lakes in model
 
-# calculate regional conductivity from meshgrid
-cond = np.zeros( (nlay, refined.nrow_ref, refined.ncol_ref) )
-spacex, spacey = np.meshgrid( refined.delr, refined.delc )
-cond[:,...] = (spacex*spacey*k_lakbott)/(sed_thick)
+# # calculate regional conductivity from meshgrid
+# cond = np.zeros( (nlay, refined.nrow_ref, refined.ncol_ref) )
+# spacex, spacey = np.meshgrid( refined.delr, refined.delc )
+# cond[:,...] = (spacex*spacey*k_lakbott)/(sed_thick)
 
-# import shapefile data
-horse  = geopd.read_file( horseshoe )
-southl = geopd.read_file( souths )
-northl = geopd.read_file( norths )
-# # find GIS data for Horseshoe lake proper
-# horse = horse.loc[horse.Name == 'Horseshoe Lake', :]
+# # import shapefile data
+# horse  = geopd.read_file( horseshoe )
+# southl = geopd.read_file( souths )
+# northl = geopd.read_file( norths )
+# # # find GIS data for Horseshoe lake proper
+# # horse = horse.loc[horse.Name == 'Horseshoe Lake', :]
 
-for df in [horse, southl, northl, miss_riv]:
-    for iii in range( len(df) ):
-        # for each polygon determine cells inside (bespoke function)
-        in_idx = find_cells_within_polygon( df.loc[iii,'geometry'], 
-                                            colmesh, rowmesh )
-        # # create lake array
-        # # 0 -> not a lake
-        # # # -> lake # 
-        # lake_id_arr = np.zeros( botm_ref.shape )
-        # lake_id_arr[2, in_idx] = numlks
+# for df in [horse, southl, northl, miss_riv]:
+#     for iii in range( len(df) ):
+#         # for each polygon determine cells inside (bespoke function)
+#         in_idx = find_cells_within_polygon( df.loc[iii,'geometry'], 
+#                                             colmesh, rowmesh )
+#         # # create lake array
+#         # # 0 -> not a lake
+#         # # # -> lake # 
+#         # lake_id_arr = np.zeros( botm_ref.shape )
+#         # lake_id_arr[2, in_idx] = numlks
         
-        # if indices were found for a given shapefile
-        if len(in_idx) != 0:
-            for rrr, ccc in zip( np.where(in_idx)[0], np.where(in_idx)[1]): 
-                # assuming list format: 
-                # [layer, row, col, water elevation, conductivity, lake bed elevation]
-                lrcd[0].append( [lay, rrr, ccc, 5+h0, cond[lay,rrr,ccc], h0] )
-                # horseshoe lake is 4 or 5 ft deep typically, according to state park author
-# attach lake package
-# lakes = flopy.modflow.ModflowLak(mf_obj, 
-#                                  nlakes=numlks,
-#                                  stages=[5.],
-#                                  stage_range=[(3., 7.)], 
-#                                  lakarr=lake_id_arr, 
-#                                  bdlknc=cond, 
-#                                  stress_period_data=lrcd,
-#                                  ) 
+#         # if indices were found for a given shapefile
+#         if len(in_idx) != 0:
+#             for rrr, ccc in zip( np.where(in_idx)[0], np.where(in_idx)[1]): 
+#                 # assuming list format: 
+#                 # [layer, row, col, water elevation, conductivity, lake bed elevation]
+#                 lrcd[0].append( [lay, rrr, ccc, 5+h0, cond[lay,rrr,ccc], h0] )
+#                 # horseshoe lake is 4 or 5 ft deep typically, according to state park author
+# # attach lake package
+# # lakes = flopy.modflow.ModflowLak(mf_obj, 
+# #                                  nlakes=numlks,
+# #                                  stages=[5.],
+# #                                  stage_range=[(3., 7.)], 
+# #                                  lakarr=lake_id_arr, 
+# #                                  bdlknc=cond, 
+# #                                  stress_period_data=lrcd,
+# #                                  ) 
 
-# model lake as River package??
-lakes = flopy.modflow.ModflowRiv(mf_obj, stress_period_data=lrcd)
+# # model lake as River package??
+# lakes = flopy.modflow.ModflowRiv(mf_obj, stress_period_data=lrcd)
 
 
 #%% INITIALIZE UPSTREAM WEIGHTING
 
-# for use with NWT only. Has to be called after some undetermined/unspecified
-#   modification to the modflow model object ( mf_obj ) that happens above
-if "NWT" in exe_dir:
+# for use with NWT only. Has to be called after lakes (and rivers?).
+if "NWT" in exe_dir: # and 'lakes' in locals():
     upw = flopy.modflow.ModflowUpw( mf_obj )
+else:
+    print('\n no upw \n')
     
 
 #%% WRITING THE INPUT FILES
